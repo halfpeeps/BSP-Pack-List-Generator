@@ -10,16 +10,13 @@ def copy_selected_folders(root_dir, folders_to_copy, target_dir):
             print(f"Source folder does not exist: {source_path}")
             continue
 
-        # Ensure the target folder exists
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
         try:
             if os.path.isdir(source_path):
-                # Copy entire directory
                 shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
                 print(f"Copied folder: {rel_path}")
             else:
-                # Copy single file
                 shutil.copy2(source_path, dest_path)
                 print(f"Copied file: {rel_path}")
         except Exception as e:
