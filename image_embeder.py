@@ -17,9 +17,15 @@ def embed_alpha(base_path: str, alpha_path: str, out_path: str, resize_mode: str
     else:
         raise ValueError("Unknown size handling option")
 
-    alpha = alpha_img.convert("L")  # brightness -> alpha
-
+    # Split base channels
     r, g, b, _ = base.split()
+
+    # Flip green channel (G -> 255 - G)
+    g = g.point(lambda x: 255 - x)
+
+    # Use brightness of alpha image as alpha channel
+    alpha = alpha_img.convert("L")  # grayscale 0..255
+
     out = Image.merge("RGBA", (r, g, b, alpha))
     out.save(out_path)
 
@@ -27,10 +33,10 @@ def embed_alpha(base_path: str, alpha_path: str, out_path: str, resize_mode: str
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Embed Image into Alpha Channel")
-        self.minsize(780, 300)
+        self.title("Embed Image into Alpha Channel (Flip Green)")
+        self.minsize(820, 310)
 
-        # Make the window usable on higher DPI displays
+        # Slightly nicer scaling on some Windows DPI setups
         try:
             self.tk.call("tk", "scaling", 1.15)
         except Exception:
@@ -46,19 +52,18 @@ class App(tk.Tk):
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
-        # Grid behavior: column 1 (entries) expands
+        # Make entry column stretch
         root.columnconfigure(0, weight=0)  # labels
         root.columnconfigure(1, weight=1)  # entries
         root.columnconfigure(2, weight=0)  # buttons
 
-        # Row helper
         def add_row(r, label, var, btn_text, btn_cmd):
             ttk.Label(root, text=label).grid(row=r, column=0, sticky="w", padx=(0, 10), pady=6)
             entry = ttk.Entry(root, textvariable=var)
             entry.grid(row=r, column=1, sticky="ew", pady=6)
             ttk.Button(root, text=btn_text, command=btn_cmd).grid(row=r, column=2, sticky="e", pady=6)
 
-        add_row(0, "Base RGB image (keeps RGB):", self.base_path, "Browse…", self.pick_base)
+        add_row(0, "Base RGB image (keeps RGB, flips GREEN):", self.base_path, "Browse…", self.pick_base)
         add_row(1, "Alpha image (brightness → alpha):", self.alpha_path, "Browse…", self.pick_alpha)
         add_row(2, "Output PNG:", self.out_path, "Save as…", self.pick_out)
 
@@ -72,7 +77,6 @@ class App(tk.Tk):
         mode.grid(row=3, column=1, sticky="w", pady=(10, 6))
         mode.current(0)
 
-        # Buttons row
         btns = ttk.Frame(root)
         btns.grid(row=4, column=0, columnspan=3, sticky="e", pady=(18, 6))
         ttk.Button(btns, text="Embed Alpha", command=self.run).grid(row=0, column=0, padx=(0, 10))
@@ -80,7 +84,7 @@ class App(tk.Tk):
 
         ttk.Label(
             root,
-            text="Tip: Output should be PNG (JPEG doesn’t support alpha).",
+            text="Tip: Output should be PNG (JPEG doesn’t support alpha). Green channel is inverted before embedding alpha.",
             foreground="#555",
         ).grid(row=5, column=0, columnspan=3, sticky="w", pady=(10, 0))
 
